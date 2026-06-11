@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import hashlib
 import json
+import os
 import re
 import subprocess
 import sys
@@ -93,22 +94,27 @@ def slugify(text: str, limit: int = 54) -> str:
     return slug[:limit].strip("-") or "item"
 
 
-def find_source_omx(repo_root: Path) -> Path:
-    candidates = []
-    env = None
-    try:
-        import os
-        env = os.environ.get("CC2_SOURCE_OMX")
-    except Exception:
-        env = None
+def find_source_omx(repo_root: Path, env_value: str | None = None) -> Path:
+    candidates: list[Path] = []
+    env = env_value if env_value is not None else os.environ.get("CC2_SOURCE_OMX")
     if env:
         candidates.append(Path(env).expanduser())
     candidates.append(repo_root / ".omx")
     candidates.extend(parent / ".omx" for parent in repo_root.parents)
-    for candidate in candidates:
+
+    checked: list[Path] = []
+    for candidate in dict.fromkeys(candidate.resolve() for candidate in candidates):
+        checked.append(candidate)
         if (candidate / "plans" / "claw-code-2-0-adaptive-plan.md").exists() and (candidate / "research").exists():
             return candidate
-    raise FileNotFoundError("could not locate source .omx with plans/claw-code-2-0-adaptive-plan.md and research/")
+
+    searched = "\n".join(f"  - {path}" for path in checked)
+    raise FileNotFoundError(
+        "could not locate source .omx with plans/claw-code-2-0-adaptive-plan.md and research/\n"
+        f"searched:\n{searched}\n"
+        "Recovery: restore the frozen CC2 source bundle or Set CC2_SOURCE_OMX=/path/to/.omx. "
+        "The source root must contain plans/claw-code-2-0-adaptive-plan.md and research/."
+    )
 
 
 def parse_roadmap(path: Path) -> tuple[list[RoadmapRecord], list[RoadmapRecord]]:
