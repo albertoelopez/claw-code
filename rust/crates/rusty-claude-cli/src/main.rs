@@ -8,11 +8,15 @@
     clippy::manual_string_new,
     clippy::match_same_arms,
     clippy::result_large_err,
+    clippy::too_many_arguments,
     clippy::too_many_lines,
+    clippy::type_complexity,
     clippy::uninlined_format_args,
     clippy::unneeded_struct_pattern,
     clippy::unnecessary_wraps,
-    clippy::unused_self
+    clippy::unused_self,
+    clippy::useless_format,
+    clippy::expect_fun_call
 )]
 mod init;
 mod input;

@@ -1,3 +1,5 @@
+#![allow(unused_variables, clippy::cmp_owned, clippy::unnecessary_map_or)]
+
 use std::fs;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Output};
