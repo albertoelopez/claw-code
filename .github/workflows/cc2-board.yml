@@ -1,0 +1,64 @@
+name: CC2 board
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cc2-board.yml
+      - Makefile
+      - README.md
+      - docs/cc2-board.md
+      - ROADMAP.md
+      - scripts/build_cc2_board.py
+      - scripts/generate_cc2_board.py
+      - scripts/reconstruct_cc2_source.py
+      - tests/test_cc2_board_generator.py
+      - tests/test_cc2_board_wrapper.py
+      - tests/test_cc2_source_reconstruction.py
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/cc2-board.yml
+      - Makefile
+      - README.md
+      - docs/cc2-board.md
+      - ROADMAP.md
+      - scripts/build_cc2_board.py
+      - scripts/generate_cc2_board.py
+      - scripts/reconstruct_cc2_source.py
+      - tests/test_cc2_board_generator.py
+      - tests/test_cc2_board_wrapper.py
+      - tests/test_cc2_source_reconstruction.py
+  workflow_dispatch:
+
+concurrency:
+  group: cc2-board-${{ github.workflow }}-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  cc2-board:
+    name: one-command board generation
+    runs-on: ubuntu-latest
+    env:
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.x"
+      - name: Run CC2 unit tests
+        run: |
+          python3 -m unittest tests.test_cc2_board_generator tests.test_cc2_board_wrapper tests.test_cc2_source_reconstruction -v
+      - name: Build CC2 board with Makefile shortcut
+        run: make cc2-board
+      - name: Upload generated board artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: cc2-board
+          path: |
+            .omx/cc2/board.json
+            .omx/cc2/board.md
+            .omx/reconstructed-source/research/reconstruction-manifest.json
+          if-no-files-found: error
