@@ -12,7 +12,7 @@ import sys
 from dataclasses import dataclass
 from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 REQUIRED_ITEM_FIELDS = [
     "id",
@@ -94,26 +94,42 @@ def slugify(text: str, limit: int = 54) -> str:
     return slug[:limit].strip("-") or "item"
 
 
-def find_source_omx(repo_root: Path, env_value: str | None = None) -> Path:
+def source_omx_candidates(repo_root: Path, env_value: str | None = None) -> list[Path]:
     candidates: list[Path] = []
     env = env_value if env_value is not None else os.environ.get("CC2_SOURCE_OMX")
     if env:
         candidates.append(Path(env).expanduser())
     candidates.append(repo_root / ".omx")
     candidates.extend(parent / ".omx" for parent in repo_root.parents)
+    return list(dict.fromkeys(candidate.resolve() for candidate in candidates))
 
+
+def format_source_omx_search(paths: list[Path]) -> str:
+    searched = "\n".join(f"  - {path}" for path in paths)
+    return (
+        f"searched:\n{searched}\n"
+        "Recovery: restore the frozen CC2 source bundle or Set CC2_SOURCE_OMX=/path/to/.omx. "
+        "The source root must contain plans/claw-code-2-0-adaptive-plan.md and research/."
+    )
+
+
+def find_source_omx(
+    repo_root: Path,
+    env_value: str | None = None,
+    warn: Callable[[str], None] | None = None,
+) -> Path:
     checked: list[Path] = []
-    for candidate in dict.fromkeys(candidate.resolve() for candidate in candidates):
+    for candidate in source_omx_candidates(repo_root, env_value):
         checked.append(candidate)
         if (candidate / "plans" / "claw-code-2-0-adaptive-plan.md").exists() and (candidate / "research").exists():
             return candidate
 
-    searched = "\n".join(f"  - {path}" for path in checked)
+    search_message = format_source_omx_search(checked)
+    if warn is not None:
+        warn(f"warning: searching for CC2 source .omx\n{search_message}")
     raise FileNotFoundError(
         "could not locate source .omx with plans/claw-code-2-0-adaptive-plan.md and research/\n"
-        f"searched:\n{searched}\n"
-        "Recovery: restore the frozen CC2 source bundle or Set CC2_SOURCE_OMX=/path/to/.omx. "
-        "The source root must contain plans/claw-code-2-0-adaptive-plan.md and research/."
+        f"{search_message}"
     )
 
 
@@ -425,9 +441,9 @@ def validate_board(board: dict[str, Any]) -> list[str]:
     return errors
 
 
-def build_board(repo_root: Path) -> dict[str, Any]:
+def build_board(repo_root: Path, warn: Callable[[str], None] | None = None) -> dict[str, Any]:
     roadmap_path = repo_root / "ROADMAP.md"
-    source_omx = find_source_omx(repo_root)
+    source_omx = find_source_omx(repo_root, warn=warn)
     research = source_omx / "research"
     plan_path = source_omx / "plans" / "claw-code-2-0-adaptive-plan.md"
     headings, actions = parse_roadmap(roadmap_path)
@@ -510,7 +526,7 @@ def main() -> int:
     repo_root = args.repo_root.resolve()
     out_dir = args.out_dir or (repo_root / ".omx" / "cc2")
     try:
-        board = build_board(repo_root)
+        board = build_board(repo_root, warn=lambda message: print(message, file=sys.stderr))
     except FileNotFoundError as exc:
         print(f"error: {exc}", file=sys.stderr)
         return 1

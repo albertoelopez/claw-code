@@ -39,6 +39,23 @@ class CC2BoardGeneratorTests(unittest.TestCase):
         self.assertIn("plans/claw-code-2-0-adaptive-plan.md", message)
         self.assertIn("research/", message)
 
+    def test_missing_source_omx_emits_warning_before_failure(self) -> None:
+        generator = load_generator()
+        warnings: list[str] = []
+        with tempfile.TemporaryDirectory() as temp_dir:
+            repo_root = Path(temp_dir) / "repo"
+            repo_root.mkdir()
+
+            with self.assertRaises(FileNotFoundError):
+                generator.find_source_omx(repo_root, warn=warnings.append)
+
+        self.assertEqual(1, len(warnings))
+        warning = warnings[0]
+        self.assertIn("warning: searching for CC2 source .omx", warning)
+        self.assertIn("searched:", warning)
+        self.assertIn(str(repo_root / ".omx"), warning)
+        self.assertIn("Set CC2_SOURCE_OMX", warning)
+
     def test_source_omx_can_be_supplied_by_env(self) -> None:
         generator = load_generator()
         with tempfile.TemporaryDirectory() as temp_dir:
