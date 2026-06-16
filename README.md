@@ -110,6 +110,24 @@ The canonical implementation lives in [`rust/`](./rust), and the current source 
 - **`PHILOSOPHY.md`** — project intent and system-design framing
 - **`src/` + `tests/`** — companion Python/reference workspace and audit helpers; not the primary runtime surface
 
+## CC2 board quickstart
+
+This fork can reconstruct local CC2 evidence and generate the canonical Claw Code 2.0 execution board with one command:
+
+```bash
+python3 scripts/build_cc2_board.py
+# or
+make cc2-board
+```
+
+Default outputs:
+
+- `.omx/reconstructed-source/` — reconstructed, non-frozen source evidence
+- `.omx/cc2/board.json` — machine-readable board
+- `.omx/cc2/board.md` — human-readable board
+
+The reconstructed source bundle is for local board generation and triage only; it is not a replacement for the original approved frozen evidence bundle. See [`docs/cc2-board.md`](./docs/cc2-board.md) for details and custom output paths.
+
 ## Quick start
 
 > [!NOTE]
